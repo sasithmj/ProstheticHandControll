@@ -139,6 +139,7 @@ class _HomePageState extends State<HomePage>
   }
 
   Future<void> _sendData(String data) async {
+    print("Data sent: $data");
     if (_connection != null && _isConnected) {
       _connection!.output.add(Uint8List.fromList(data.codeUnits));
       await _connection!.output.allSent;
@@ -259,7 +260,10 @@ class _HomePageState extends State<HomePage>
       context,
       MaterialPageRoute(
         builder: (context) {
-          return CameraPage(index: 2,sendData: _sendData,);
+          return CameraPage(
+            index: 2,
+            sendData: _sendData,
+          );
         },
       ),
     );

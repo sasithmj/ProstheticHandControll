@@ -85,11 +85,13 @@ class ModelCameraPreview extends StatelessWidget {
     // Debug print to verify the structure
     print('Finger States in _drawHands: $fingerStates');
     print('Points in _drawHands: $points');
-    
+
     Map<String, dynamic> realtimeData = {
       "sendType": "realtime",
       "data": fingerStates,
     };
+
+    print(realtimeData);
 
     // Convert the data to a JSON string
     String jsonData = jsonEncode(realtimeData);

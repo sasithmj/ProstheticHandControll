@@ -12,7 +12,6 @@ class HandsPainter extends CustomPainter {
     required this.points,
     required this.fingerStates,
     required this.ratio,
-    
   });
 
   @override
@@ -60,7 +59,7 @@ class HandsPainter extends CustomPainter {
       };
 
       // Draw the palm point separately
-      if (points.length > 0) {
+      if (points.isNotEmpty) {
         canvas.drawPoints(
           PointMode.points,
           [points[0] * ratio],
@@ -79,17 +78,21 @@ class HandsPainter extends CustomPainter {
 
       // Draw lines connecting landmarks for each finger with finger-specific colors
       fingerIndices.forEach((fingerName, indices) {
-        final fingerPoints = indices.map((i) => points[i] * ratio).toList();
-        final fingerPaint = Paint()
-          ..color = fingerColors[fingerName] ?? primaryColor
-          ..strokeWidth = 2.5
-          ..strokeCap = StrokeCap.round;
+        // Only process indices that are within bounds
+        final validIndices = indices.where((i) => i < points.length).toList();
+        if (validIndices.length > 1) { // Need at least 2 points to draw a line
+          final fingerPoints = validIndices.map((i) => points[i] * ratio).toList();
+          final fingerPaint = Paint()
+            ..color = fingerColors[fingerName] ?? primaryColor
+            ..strokeWidth = 2.5
+            ..strokeCap = StrokeCap.round;
 
-        canvas.drawPoints(
-          PointMode.polygon,
-          fingerPoints,
-          fingerPaint,
-        );
+          canvas.drawPoints(
+            PointMode.polygon,
+            fingerPoints,
+            fingerPaint,
+          );
+        }
       });
 
       // Draw finger states with improved styling
@@ -98,95 +101,101 @@ class HandsPainter extends CustomPainter {
         fontSize: 14,
       );
 
-      // Create a background for the status panel
-      final statusPanelRect = Rect.fromLTWH(10, 10, 150, 170);
-      final statusPanelPaint = Paint()
-        ..color = Colors.black.withOpacity(0.6)
-        ..style = PaintingStyle.fill;
-
-      final statusPanelRRect = RRect.fromRectAndRadius(
-        statusPanelRect,
-        const Radius.circular(12),
-      );
-
-      canvas.drawRRect(statusPanelRRect, statusPanelPaint);
-
-      // Draw title for the status panel
-      const titleStyle = TextStyle(
-        color: Colors.white,
-        fontSize: 16,
-        fontWeight: FontWeight.bold,
-      );
-
-      final titleSpan = TextSpan(
-        text: 'Finger Status',
-        style: titleStyle,
-      );
-
-      final titlePainter = TextPainter(
-        text: titleSpan,
-        textDirection: TextDirection.ltr,
-      );
-
-      titlePainter.layout();
-      titlePainter.paint(
-          canvas, Offset(statusPanelRect.left + 15, statusPanelRect.top + 10));
-
-      // Draw divider line
-      final dividerPaint = Paint()
-        ..color = Colors.white.withOpacity(0.5)
-        ..strokeWidth = 1;
-
-      canvas.drawLine(
-        Offset(statusPanelRect.left + 15, statusPanelRect.top + 35),
-        Offset(statusPanelRect.right - 15, statusPanelRect.top + 35),
-        dividerPaint,
-      );
-
-      // Draw finger states with improved styling
-      double yOffset = statusPanelRect.top + 45; // Starting y position for text
-      const double lineHeight = 20.0; // Spacing between lines
-
-      fingerStates.forEach((finger, isOpen) {
-        final dotColor = isOpen ? Colors.green : Colors.red;
-
-        // Draw status dot
-        final dotPaint = Paint()
-          ..color = dotColor
+      // Only draw the status panel if we have finger states
+      if (fingerStates.isNotEmpty) {
+        // Create a background for the status panel
+        final statusPanelRect = Rect.fromLTWH(10, 10, 150, 170);
+        final statusPanelPaint = Paint()
+          ..color = Colors.black.withOpacity(0.6)
           ..style = PaintingStyle.fill;
 
-        canvas.drawCircle(
-          Offset(statusPanelRect.left + 25, yOffset + 6),
-          4,
-          dotPaint,
+        final statusPanelRRect = RRect.fromRectAndRadius(
+          statusPanelRect,
+          const Radius.circular(12),
         );
 
-        // Draw finger name and status
-        final statusText = isOpen ? "Open" : "Closed";
-        final textSpan = TextSpan(
-          text: '$finger: ',
-          style: stateTextStyle.copyWith(
-            color: fingerColors[finger] ?? Colors.white,
-          ),
-          children: [
-            TextSpan(
-              text: statusText,
-              style: stateTextStyle.copyWith(
-                color: isOpen ? Colors.green : Colors.red,
-              ),
-            ),
-          ],
+        canvas.drawRRect(statusPanelRRect, statusPanelPaint);
+
+        // Draw title for the status panel
+        const titleStyle = TextStyle(
+          color: Colors.white,
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
         );
 
-        final textPainter = TextPainter(
-          text: textSpan,
+        final titleSpan = TextSpan(
+          text: 'Finger Status',
+          style: titleStyle,
+        );
+
+        final titlePainter = TextPainter(
+          text: titleSpan,
           textDirection: TextDirection.ltr,
         );
 
-        textPainter.layout();
-        textPainter.paint(canvas, Offset(statusPanelRect.left + 35, yOffset));
-        yOffset += lineHeight + 4; // Move down for the next finger
-      });
+        titlePainter.layout();
+        titlePainter.paint(
+            canvas, Offset(statusPanelRect.left + 15, statusPanelRect.top + 10));
+
+        // Draw divider line
+        final dividerPaint = Paint()
+          ..color = Colors.white.withOpacity(0.5)
+          ..strokeWidth = 1;
+
+        canvas.drawLine(
+          Offset(statusPanelRect.left + 15, statusPanelRect.top + 35),
+          Offset(statusPanelRect.right - 15, statusPanelRect.top + 35),
+          dividerPaint,
+        );
+
+        // Draw finger states with improved styling
+        double yOffset = statusPanelRect.top + 45; // Starting y position for text
+        const double lineHeight = 20.0; // Spacing between lines
+
+        fingerStates.forEach((finger, isOpen) {
+          // Skip if the finger name is not in our expected list
+          if (!fingerColors.containsKey(finger)) return;
+          
+          final dotColor = isOpen ? Colors.green : Colors.red;
+
+          // Draw status dot
+          final dotPaint = Paint()
+            ..color = dotColor
+            ..style = PaintingStyle.fill;
+
+          canvas.drawCircle(
+            Offset(statusPanelRect.left + 25, yOffset + 6),
+            4,
+            dotPaint,
+          );
+
+          // Draw finger name and status
+          final statusText = isOpen ? "Open" : "Closed";
+          final textSpan = TextSpan(
+            text: '$finger: ',
+            style: stateTextStyle.copyWith(
+              color: fingerColors[finger] ?? Colors.white,
+            ),
+            children: [
+              TextSpan(
+                text: statusText,
+                style: stateTextStyle.copyWith(
+                  color: isOpen ? Colors.green : Colors.red,
+                ),
+              ),
+            ],
+          );
+
+          final textPainter = TextPainter(
+            text: textSpan,
+            textDirection: TextDirection.ltr,
+          );
+
+          textPainter.layout();
+          textPainter.paint(canvas, Offset(statusPanelRect.left + 35, yOffset));
+          yOffset += lineHeight + 4; // Move down for the next finger
+        });
+      }
     }
   }
 
